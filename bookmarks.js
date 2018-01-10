@@ -136,16 +136,15 @@ function addBookmark() {
     var link = $("#newLink").val();
     var tags = $("#newTags").val();
 
-    var date = new Date();
-    var secs = Math.trunc(date.getTime() / 1000);
-
     // If the name or link is empty then ignore.
     if ( ( ! name ) || ( ! link ) ) {
         return;
     }
-
+    
+    var today = $.datepicker.formatDate('yy-mm-dd', new Date());
+    
     var current = document.getElementById("bookmarks").innerHTML;
-    var entry = '<li id="newOne" title="' + tags + '" time="' + secs + '"><a href="' + link + '">' + name + '</a></li>';
+    var entry = '<li id="newOne" title="' + tags + '" dt="' + today + '"><a href="' + link + '" target="_blank">' + name + '</a></li>';
     current = current + entry;
     document.getElementById("bookmarks").innerHTML = current;
     populateTags();
@@ -161,6 +160,10 @@ function addBookmark() {
             $(this).removeAttr("id");
         }
     });
+    
+    registerClick();
+    registerTooltip();
+    
     var form = document.getElementById("newForm");
     form.reset();
     setupEditRemove();
@@ -295,7 +298,7 @@ function sortBookmarks()
     var mylist = $('#bookmarks');
     var listitems = mylist.children('li').get();
     listitems.sort(function (a, b) {
-        return $(a).text().toUpperCase().localeCompare($(b).text().toUpperCase());
+        return $(a).attr("dt").localeCompare($(b).attr("dt"));
     });
     $.each(listitems, function (idx, itm) {
         mylist.append(itm);
@@ -339,20 +342,21 @@ function doneEditBookmark () {
     // switch form to adding mode
     $('.whenedit').hide();
     $('.whenadd').show();
+    
+    registerClick();
+    registerTooltip();
 }
 
 /**
  * Switch Add bookmark form to editing mode
  */
 function editBookmark (selector) {
-    var date = new Date();
-    var now  = Math.trunc(date.getTime() / 1000);
 
     // load form
     $('#newName').val(selector.find('> a').html());
     $('#newLink').val(selector.find('> a').attr('href'));
     $('#newTags').val(selector.attr('title'));
-    $('#newTime').val(selector.attr('time') || now );
+    $('#newDt').val(selector.attr('dt'));
 
     // switch to editing mode
     $('.whenadd').hide();
@@ -363,10 +367,11 @@ function editBookmark (selector) {
         selector.find('> a').html($('#newName').val());
         selector.find('> a').attr('href', $('#newLink').val());
         selector.attr('title', $('#newTags').val());
-        selector.attr('time', $('#newTime').val());
+        selector.attr('dt', $('#newDt').val());
+        
         // update tags
         toggleTags();
-        toggleTags();
+        
         // switch to adding mode
         doneEditBookmark();
     });
@@ -466,6 +471,27 @@ function handleParams () {
 }
 
 /**
+ * Register onclick events for items
+ */
+function registerClick()
+{
+    $('#bookmarks>li>a').click(function() {
+        	$(this).parent().attr("dt", $.datepicker.formatDate('yy-mm-dd', new Date()));
+    });
+}
+
+/**
+ * Show dates of last visit as tooltips on the <li>
+ */
+function registerTooltip(){
+    $('#bookmarks>li').tooltip({
+        content:function() {
+            return $(this).attr("dt");
+        }
+    });
+}
+
+/**
  * Load our bookmarks from the URL `bookmarks.data`, and setup our
  * initial state + listeners.
  */
@@ -485,6 +511,7 @@ function setup () {
         if ( tagsVisible ) {
             showTags();
         }
+        
         /**
          * take the anchor (aka hash) and use it as filter to
          * show only entries with a given tag
@@ -527,6 +554,13 @@ function setup () {
 
         /** Handle URL parameters */
         handleParams();
+        
+        /** Register onclick events for items */
+        registerClick();
+        
+        /** Register tooltips */
+        registerTooltip();
+        
     });
 }
 
